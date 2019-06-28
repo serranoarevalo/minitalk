@@ -1,4 +1,4 @@
-type User {
-  id: ID! @unique
-  name: String!
+type Message {
+  id: ID! @id
+  text: String!
 }
