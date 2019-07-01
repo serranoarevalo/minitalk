@@ -1,14 +1,19 @@
 import { GraphQLServer } from "graphql-yoga";
+import { prisma } from "./generated/prisma-client";
 
 const typeDefs = `
+  type Message{
+    id: String!
+    text: String!
+  }
   type Query {
-    hello(name: String): String!
+    messages: [Message!]!
   }
 `;
 
 const resolvers = {
   Query: {
-    hello: (_, { name }) => `Hello ${name || "World"}`
+    messages: () => prisma.messages()
   }
 };
 
