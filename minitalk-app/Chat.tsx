@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView
 } from "react-native";
 import gql from "graphql-tag";
-import { useMutation, useQuery } from "react-apollo-hooks";
+import { useMutation, useQuery, useSubscription } from "react-apollo-hooks";
 
 const SEND_MESSAGE = gql`
   mutation sendMessage($text: String!) {
@@ -27,18 +27,40 @@ const MESSAGES = gql`
   }
 `;
 
+const NEW_MESSAGE = gql`
+  subscription newMessage {
+    newMessage {
+      id
+      text
+    }
+  }
+`;
+
 export default function Chat() {
   const [message, setMessage] = useState("");
   const sendMessageMutation = useMutation(SEND_MESSAGE, {
     variables: {
       text: message
-    },
-    refetchQueries: () => [{ query: MESSAGES }]
+    }
   });
-  const { data, error } = useQuery(MESSAGES, { suspend: true });
+  const { data: oldMessages } = useQuery(MESSAGES, { suspend: true });
+  const { data: newMessage, loading, error } = useSubscription(NEW_MESSAGE);
+  const [messages, setMessages] = useState(oldMessages.messages);
+  const updateMessages = () => {
+    if (newMessage !== undefined) {
+      const { newMessage: payload } = newMessage;
+      setMessages(previous => [...previous, payload]);
+    }
+  };
+  useEffect(() => {
+    updateMessages();
+  }, [newMessage]);
   const onChangeText = text => setMessage(text);
   const onSubmit = async () => {
     setMessage("");
+    if (message === "") {
+      return;
+    }
     try {
       await sendMessageMutation();
     } catch (e) {
@@ -55,7 +77,7 @@ export default function Chat() {
           justifyContent: "flex-end"
         }}
       >
-        {data.messages.map(m => (
+        {messages.map(m => (
           <View key={m.id} style={{ marginBottom: 10 }}>
             <Text>{m.text}</Text>
           </View>
