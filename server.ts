@@ -9,11 +9,29 @@ const typeDefs = `
   type Query {
     messages: [Message!]!
   }
+  type Mutation {
+    sendMessage(text:String!): Message!
+  }
+  type Subscription {
+    newMessage: Message!
+  }
 `;
 
 const resolvers = {
   Query: {
     messages: () => prisma.messages()
+  },
+  Mutation: {
+    sendMessage: (_, { text }) =>
+      prisma.createMessage({
+        text
+      })
+  },
+  Subscription: {
+    newMessage: {
+      subscribe: () => prisma.$subscribe.message().node(),
+      resolve: payload => payload
+    }
   }
 };
 
